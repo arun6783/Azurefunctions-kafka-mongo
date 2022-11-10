@@ -1,0 +1,70 @@
+version: '3.8'
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper   
+    hostname: zookeeper
+    extra_hosts:
+    - 'moby:127.0.0.1'
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka
+    hostname: broker      
+    extra_hosts:
+    - "moby:127.0.0.1"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "broker", "9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 5      
+    depends_on:
+      - zookeeper
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:9092'
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+  mongo:
+    container_name: mongo
+    image: mongo  
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo:/data/db
+  producer:
+    container_name: producer
+    build: ./producer 
+    ports:
+      - 8085:8085
+    volumes:
+      - ./producer:/app
+    environment:
+      - PORT=8085
+      - MONGO_URL=mongodb://mongo:27017/producer
+      - KAFKA_BOOTSTRAP_SERVERS=broker:9092
+      - KAFKA_TOPIC=topic1
+    depends_on:
+      - kafka
+  consumer:
+    container_name: consumer
+    build: ./consumer    
+    ports:
+      - 8086:8086
+    volumes:
+      - ./consumer:/app    
+    environment:
+      - PORT=8085
+      - MONGO_URL=mongodb://mongo:27017/consumer
+      - KAFKA_BOOTSTRAP_SERVERS=broker:9092
+      - KAFKA_TOPIC=topic1
+    depends_on:
+      - kafka      
+
+
