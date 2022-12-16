@@ -3,6 +3,8 @@ const Kafka = require('node-rdkafka')
 const config = require('./config')
 const express = require('express')
 const data = require('./data')
+const connectDB = require('./mongo')
+const RebuyItem = require('./RebuyItem')
 
 const app = express()
 
@@ -70,6 +72,8 @@ const getRandom = (min = 1, max = 100) => {
 
 app.post('/populate', async (req, res) => {
   try {
+    const startTime = new Date()
+
     await ensureTopicExists(config)
 
     const producer = await createProducer(config, (err, report) => {
@@ -83,29 +87,63 @@ app.post('/populate', async (req, res) => {
       }
     })
 
-    for (let i = 1; i <= 5; i++) {
-      let orderType = getRandom(1, 5)
+    let onlineMessagesInserted = 0
+    let otherMessages = 0
+    for (let i = 1; i <= 5000; i++) {
+      const dataIndexToInsert = i % 5 == 0 ? 0 : 1
 
-      let message = {
-        orderId: getRandom(),
-        orderType: orderType,
-        products: [data[orderType], data[getRandom(0, 5)]],
+      var dataToInsert = data[dataIndexToInsert]
+
+      if (dataIndexToInsert == 0) {
+        onlineMessagesInserted++
+      } else {
+        otherMessages++
       }
+      const value = Buffer.from(JSON.stringify(dataToInsert))
 
-      const key = i
-      const value = Buffer.from(JSON.stringify(message))
-
-      console.log(`Producing record ${key}\t${value}`)
-
-      producer.produce(config.topic, -1, value, key)
+      producer.produce(config.topic, -1, value, i)
     }
-    res.send('successfully published messages')
+    const endTime = new Date()
+    var timeDiff = endTime - startTime
+
+    timeDiff /= 1000
+    var seconds = `${Math.round(timeDiff)} seconds`
+
+    res.send(
+      `successfully published messages in ${seconds}. onlineMessages = ${onlineMessagesInserted}, otherMessages=${otherMessages}`
+    )
   } catch (e) {
     res.status(500).send(e.message)
   }
 })
 
-const port = process.env.APP_PORT
-app.listen(port, () =>
-  console.log(`Kafka message producer app is listening on port ${port}...`)
-)
+app.post('/create', async (req, res) => {
+  try {
+    const item = await RebuyItem.create(req.body)
+    res.status(200).json({ item })
+
+  } catch (e) {
+    res.status(500).send(e.message)
+  }
+})
+
+app.get('/getall',  async (req, res) => {
+  const jobs = await RebuyItem.find({})
+  res.status(200).json({ jobs, count: jobs.length })
+})
+
+const start = async () => {
+  try {
+    await connectDB();
+
+    console.log('successfully connected to mongo')
+    const port = process.env.APP_PORT
+    app.listen(port, () =>
+      console.log(`Kafka message producer app is listening on port ${port}...`)
+    )
+  } catch (err) {
+    console.log('error occured', err)
+  }
+}
+
+start()
