@@ -26,45 +26,74 @@ services:
       - zookeeper
     ports:
       - '9092:9092'
+      - '29092:29092'
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092'
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
-  mongo:
-    container_name: mongo
-    image: mongo  
-    ports:
-      - 27017:27017
-    volumes:
-      - ./data/mongo:/data/db
-  producer:
-    container_name: producer
-    build: ./producer 
-    ports:
-      - 8085:8085
-    volumes:
-      - ./producer:/app
-    environment:
-      - PORT=8085
-      - MONGO_URL=mongodb://mongo:27017/producer
-      - KAFKA_BOOTSTRAP_SERVERS=broker:9092
-      - KAFKA_TOPIC=topic1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1      
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  init-kafka:
+    image: confluentinc/cp-kafka
     depends_on:
       - kafka
-  consumer:
-    container_name: consumer
-    build: ./consumer    
-    ports:
-      - 8086:8086
-    volumes:
-      - ./consumer:/app    
-    environment:
-      - PORT=8085
-      - MONGO_URL=mongodb://mongo:27017/consumer
-      - KAFKA_BOOTSTRAP_SERVERS=broker:9092
-      - KAFKA_TOPIC=topic1
-    depends_on:
-      - kafka      
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server broker:9092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic my-topic-1 --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic my-topic-2 --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server broker:9092 --list
+      "      
+  # mongo:
+  #   container_name: mongo
+  #   image: mongo  
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - ./data/mongo:/data/db
+  # producer:
+  #   container_name: producer
+  #   build: ./producer 
+  #   ports:
+  #     - 8085:8085
+  #   volumes:
+  #     - ./producer:/app
+  #   environment:
+  #     - PORT=8085
+  #     - MONGO_URL=mongodb://mongo:27017/producer
+  #     - KAFKA_BOOTSTRAP_SERVERS=broker:9092
+  #     - KAFKA_TOPIC=my-topic-1
+  #   depends_on:
+  #     - kafka
+  # consumer:
+  #   container_name: consumer
+  #   build: ./consumer    
+  #   ports:
+  #     - 8086:8086
+  #   volumes:
+  #     - ./consumer:/app    
+  #   environment:
+  #     - PORT=8085
+  #     - MONGO_URL=mongodb://mongo:27017/consumer
+  #     - KAFKA_BOOTSTRAP_SERVERS=broker:9092
+  #     - KAFKA_TOPIC=topic1
+  #   depends_on:
+  #     - kafka      
 
 

@@ -1,9 +1,14 @@
 const connectDB = require('./mongo')
 const RebuyItem = require('./RebuyItem')
+const appInsight = require('applicationinsights')
+const logger = require('./logger')
+
 
 module.exports = async function (context, events) {
-  await connectDB()
-
+  //await connectDB()
+  logger.error('logger - this is a sample error')
+  logger.debug('logger - this is sample debug')
+  logger.info('logger - this is sample info')
   const startTime = new Date()
   const parsedMessage = events.map((m) => {
     var parsed =  JSON.parse(m)
@@ -14,7 +19,7 @@ module.exports = async function (context, events) {
     `Kafka trigger function called for message length ${parsedMessage.length}`
   )
 
-  await processMessage(parsedMessage, startTime, context)
+ // await processMessage(parsedMessage, startTime, context)
 }
 
 async function processMessage(parsedMessage, startTime, context) {

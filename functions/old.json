@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "BrokerList": "pkc-41mxj.uksouth.azure.confluent.cloud:9092",
+    "ConfluentCloudUserName": "YO7I3NGOXZIR6COO",
+    "ConfluentCloudPassword": "6v1f/CeJyhkV6F4PbPQiw8Njzg9R1/xKYQvHo1untAQBpSbhkc2o2EZ6Tdk0Bb1z",
+    "topic": "topic_0",
+    "MONGO_USER":"azfunctionuser",
+    "MONGO_PASSWORD": "wxlxXCyiMyxF1yxD"
+  }
+}

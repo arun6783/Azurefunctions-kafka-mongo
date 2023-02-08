@@ -43,4 +43,7 @@ const start = async () => {
   }
 }
 
-start()
+//start()
+
+
+console.log('stand alone consumer not listening anymore')

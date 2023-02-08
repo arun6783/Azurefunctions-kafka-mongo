@@ -6,7 +6,7 @@
   },
   "extensions": {
     "kafka": {
-      "maxBatchSize": 500
+      "maxBatchSize": 2
     }
   }
 }
